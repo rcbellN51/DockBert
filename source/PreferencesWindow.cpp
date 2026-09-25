@@ -18,7 +18,6 @@
 #include <StringView.h>
 #include <TabView.h>
 
-
 #undef B_TRANSLATION_CONTEXT
 #define B_TRANSLATION_CONTEXT "PreferencesWindow"
 
@@ -113,12 +112,26 @@ PreferencesWindow::MessageReceived(BMessage* message)
 				color = fPreferences->GetTabProperty(index, "FrameColor", color);
 				fTabColorControl->SetValue(color);
 				fTabColorControl->SetEnabled(true);
+				bool drawBorder = fPreferences->GetTabProperty(
+					index, "DrawBorder", false);
+				fDrawTabBorderControl->SetValue(drawBorder);
+				fDrawTabBorderControl->SetEnabled(true);
+
+				rgb_color borderColor = {0,0,0,255};
+				borderColor = fPreferences->GetTabProperty(
+					index, "BorderColor", borderColor);
+				fTabBorderColorControl->SetValue(borderColor);
+				fTabBorderColorControl->SetEnabled(drawBorder);
 				fRemoveTabButton->SetEnabled(true);
 			} else {
 				fTabNameControl->SetText("");
 				fTabNameControl->SetEnabled(false);
 				fTabColorControl->SetValue({0,0,0,0});
 				fTabColorControl->SetEnabled(false);
+				fDrawTabBorderControl->SetValue(false);
+				fDrawTabBorderControl->SetEnabled(false);
+				fTabBorderColorControl->SetValue({0,0,0,255});
+				fTabBorderColorControl->SetEnabled(false);
 				fRemoveTabButton->SetEnabled(false);
 			}
 			break;
@@ -128,6 +141,21 @@ PreferencesWindow::MessageReceived(BMessage* message)
 			auto index = fTabListView->CurrentSelection();
 			rgb_color color = fTabColorControl->ValueAsColor();
 			fPreferences->SetTabProperty(index, "FrameColor", color);
+			break;
+		}
+		case kMsgDrawTabBorder:
+		{
+			auto index = fTabListView->CurrentSelection();
+			bool drawBorder = fDrawTabBorderControl->Value() == B_CONTROL_ON;
+			fPreferences->SetTabProperty(index, "DrawBorder", drawBorder);
+			fTabBorderColorControl->SetEnabled(drawBorder);
+			break;
+		}
+		case kMsgTabBorderColor:
+		{
+			auto index = fTabListView->CurrentSelection();
+			rgb_color color = fTabBorderColorControl->ValueAsColor();
+			fPreferences->SetTabProperty(index, "BorderColor", color);
 			break;
 		}
 		case kMsgChangeTabName:
@@ -279,6 +307,15 @@ PreferencesWindow::_InitControls()
 	fTabColorControl = new BColorControl(B_ORIGIN, B_CELLS_32x8, 8,
 		"TabColorControl", new BMessage(kMsgTabColor));
 	fTabColorControl->SetEnabled(false);
+	fDrawTabBorderControl = new BCheckBox(B_TRANSLATE("Draw border"),
+		new BMessage(kMsgDrawTabBorder));
+	fDrawTabBorderControl->SetEnabled(false);
+
+	BStringView *tabBorderColorLabel = new BStringView("tabBorderColorLabel",
+		B_TRANSLATE("Border color"));
+	fTabBorderColorControl = new BColorControl(B_ORIGIN, B_CELLS_32x8, 8,
+		"TabBorderColorControl", new BMessage(kMsgTabBorderColor));
+	fTabBorderColorControl->SetEnabled(false);
 	fTabNameControl = new BTextControl(B_TRANSLATE("Name"), "", new BMessage(kMsgModifyName));
 	fTabNameControl->SetEnabled(false);
 	fTabNameControl->SetModificationMessage(new BMessage(kMsgModifyName));
@@ -298,6 +335,9 @@ PreferencesWindow::_InitControls()
 			.Add(fTabNameControl)
 			.Add(tabBackgroundColorLabel)
 			.Add(fTabColorControl)
+			.Add(fDrawTabBorderControl)
+			.Add(tabBorderColorLabel)
+			.Add(fTabBorderColorControl)
 			.AddGlue()
 			.End()
 		.View();

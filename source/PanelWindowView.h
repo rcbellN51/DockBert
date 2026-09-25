@@ -109,6 +109,7 @@ private:
 	int DoIconSmallerWithTime();
 	TInnerPanel *PanelAt( BPoint );
 	void BuildViewsPicture(bool);
+	void LoadDesktopBackground();
 
 	void WindowResizeBy( float i )
 	{
@@ -133,6 +134,9 @@ private:
 	BList fWorkspaceChangeNotifyList;
 
 	BPicture *fMyPicture;
+	BBitmap *fDesktopBackground;
+	int32 fDesktopBackgroundMode;
+	BPoint fDesktopBackgroundOrigin;
 
 //	BLocker fHighlightIconsLock;
 //	BLocker fPanelListLock;

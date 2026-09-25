@@ -82,6 +82,8 @@ public:
 
 	virtual rgb_color BackColor() const;
 	rgb_color FrameColor() const;
+	bool DrawBorder() const { return fDrawBorder; }
+	rgb_color BorderColor() const { return fBorderColor; }
 
 	virtual void IsDragging( BPoint, uint32 ) {}
 
@@ -107,6 +109,8 @@ friend class TPanelWindowView;
 
 	// options
 	rgb_color fBackFrameColor;
+	bool fDrawBorder;
+	rgb_color fBorderColor;
 	BString fTabName;
 	int32 fFrameHeight;
 };

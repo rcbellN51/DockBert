@@ -5,19 +5,27 @@
 
 #include "tracker_private.h"
 
+#include <Alert.h>
+#include <Application.h>
+#include <Autolock.h>
+#include <Directory.h>
+#include <FindDirectory.h>
+#include <InterfaceDefs.h>
 #include <MessageRunner.h>
+#include <Node.h>
+#include <Path.h>
+#include <Picture.h>
+#include <PropertyInfo.h>
 #include <Rect.h>
 #include <Region.h>
 #include <Roster.h>
-#include <PropertyInfo.h>
-#include <Application.h>
-#include <Picture.h>
-#include <FindDirectory.h>
-#include <Alert.h>
+#include <Screen.h>
+#include <TranslationUtils.h>
+
+#include <be_apps/Tracker/Background.h>
+#include <fs_attr.h>
 
 #include <strings.h>
-
-#include <Autolock.h>
 
 //#define USE_WINDOW_SHAPING /* BeOS Dano code*/
 
@@ -63,6 +71,10 @@ TPanelWindowView::TPanelWindowView()
 	SetViewColor( B_TRANSPARENT_COLOR );
 
 	fMyPicture = new BPicture();
+	fDesktopBackground = 0;
+	fDesktopBackgroundMode = B_BACKGROUND_MODE_TILED;
+	fDesktopBackgroundOrigin = BPoint(0, 0);
+	LoadDesktopBackground();
 }
 
 TPanelWindowView::TPanelWindowView( BMessage *msg )
@@ -84,6 +96,10 @@ TPanelWindowView::TPanelWindowView( BMessage *msg )
 	SetViewColor( B_TRANSPARENT_COLOR );
 
 	fMyPicture = new BPicture();
+	fDesktopBackground = 0;
+	fDesktopBackgroundMode = B_BACKGROUND_MODE_TILED;
+	fDesktopBackgroundOrigin = BPoint(0, 0);
+	LoadDesktopBackground();
 }
 
 TPanelWindowView::~TPanelWindowView()
@@ -108,7 +124,88 @@ TPanelWindowView::~TPanelWindowView()
 	if ( fThisArchive )
 		delete fThisArchive;
 
+	delete fDesktopBackground;
 	delete fMyPicture;
+}
+
+void
+TPanelWindowView::LoadDesktopBackground()
+{
+	delete fDesktopBackground;
+	fDesktopBackground = 0;
+
+	BPath desktopPath;
+	if (find_directory(B_DESKTOP_DIRECTORY, &desktopPath) != B_OK)
+		return;
+
+	BNode desktopNode(desktopPath.Path());
+	if (desktopNode.InitCheck() != B_OK)
+		return;
+
+	attr_info info;
+	if (desktopNode.GetAttrInfo(B_BACKGROUND_INFO, &info) != B_OK)
+		return;
+
+	char* buffer = new char[info.size];
+
+	status_t error = desktopNode.ReadAttr(
+		B_BACKGROUND_INFO, info.type, 0, buffer, (size_t)info.size);
+
+	BMessage container;
+	if (error == info.size)
+		error = container.Unflatten(buffer);
+
+	delete[] buffer;
+
+	if (error != B_OK)
+		return;
+
+	int32 workspace = current_workspace();
+	uint32 workspaceMask = 1U << workspace;
+
+	const char* selectedPath = 0;
+	const char* fallbackPath = 0;
+	int32 selectedIndex = -1;
+	int32 fallbackIndex = -1;
+
+	for (int32 index = 0; ; index++) {
+		const char* path;
+		if (container.FindString(B_BACKGROUND_IMAGE, index, &path) != B_OK)
+			break;
+
+		int32 workspaces = B_ALL_WORKSPACES;
+		container.FindInt32(
+			B_BACKGROUND_WORKSPACES, index, &workspaces);
+
+		uint32 mask = (uint32)workspaces;
+
+		// Match Tracker: an image assigned only to this workspace
+		// takes precedence over one assigned to multiple workspaces.
+		if (mask == workspaceMask) {
+			selectedPath = path;
+			selectedIndex = index;
+			break;
+		}
+
+		if ((mask & workspaceMask) != 0) {
+			fallbackPath = path;
+			fallbackIndex = index;
+		}
+	}
+
+	if (selectedPath == 0) {
+		selectedPath = fallbackPath;
+		selectedIndex = fallbackIndex;
+	}
+
+	if (selectedPath != 0) {
+		container.FindInt32(
+			B_BACKGROUND_MODE, selectedIndex, &fDesktopBackgroundMode);
+		container.FindPoint(
+			B_BACKGROUND_ORIGIN, selectedIndex, &fDesktopBackgroundOrigin);
+
+		fDesktopBackground = BTranslationUtils::GetBitmapFile(selectedPath);
+	}
 }
 
 void TPanelWindowView::AttachedToWindow()
@@ -777,12 +874,129 @@ void TPanelWindowView::Draw( BRect updateRect )
 	w = Bounds().Width();
 	h = Bounds().Height();
 
-	SetHighColor( fColor2 );
-	FillRect( BRect( 0, 0, h, h ) );
-	FillRect( BRect( w-h, 0, w, h ) );
+	if (fDesktopBackground != 0 && Window() != 0)
+	{
+		BRect windowFrame = Window()->Frame();
 
-	FillRect( BRect( h/2, 0, w-(h/2), h/2) );
-	FillRect( BRect( 0, h/2, w, h ) );
+		if (fDesktopBackgroundMode == B_BACKGROUND_MODE_CENTERED)
+		{
+			BScreen screen(Window());
+			BRect screenFrame = screen.Frame();
+			BRect bitmapBounds = fDesktopBackground->Bounds();
+
+			SetHighColor(screen.DesktopColor());
+			FillRect(Bounds());
+
+			BRect destinationRect(bitmapBounds);
+			destinationRect.OffsetBy(
+				(screenFrame.Width() - bitmapBounds.Width()) / 2,
+				(screenFrame.Height() - bitmapBounds.Height()) / 2);
+
+			destinationRect.OffsetBy(
+				-windowFrame.left,
+				-windowFrame.top);
+
+			DrawBitmap(
+				fDesktopBackground,
+				bitmapBounds,
+				destinationRect);
+		}
+		else if (fDesktopBackgroundMode == B_BACKGROUND_MODE_USE_ORIGIN)
+		{
+			BScreen screen(Window());
+			BRect bitmapBounds = fDesktopBackground->Bounds();
+
+			SetHighColor(screen.DesktopColor());
+			FillRect(Bounds());
+
+			BRect destinationRect(bitmapBounds);
+			destinationRect.OffsetTo(fDesktopBackgroundOrigin);
+
+			destinationRect.OffsetBy(
+				-windowFrame.left,
+				-windowFrame.top);
+
+			DrawBitmap(
+				fDesktopBackground,
+				bitmapBounds,
+				destinationRect);
+		}
+		else if (fDesktopBackgroundMode == B_BACKGROUND_MODE_SCALED)
+		{
+			BScreen screen(Window());
+			BRect screenFrame = screen.Frame();
+			BRect bitmapBounds = fDesktopBackground->Bounds();
+			BRect destinationRect(bitmapBounds);
+
+			if (bitmapBounds.Width() / bitmapBounds.Height()
+				>= screenFrame.Width() / screenFrame.Height())
+			{
+				float overlap
+					= ((screenFrame.Height() / bitmapBounds.Height()
+						* bitmapBounds.Width()) - screenFrame.Width()) / 2;
+
+				destinationRect.Set(
+					-overlap,
+					0,
+					screenFrame.Width() + overlap,
+					screenFrame.Height());
+			}
+			else
+			{
+				float overlap
+					= ((screenFrame.Width() / bitmapBounds.Width()
+						* bitmapBounds.Height()) - screenFrame.Height()) / 2;
+
+				destinationRect.Set(
+					0,
+					-overlap,
+					screenFrame.Width(),
+					screenFrame.Height() + overlap);
+			}
+
+			destinationRect.OffsetBy(
+				-windowFrame.left,
+				-windowFrame.top);
+
+			DrawBitmap(
+				fDesktopBackground,
+				bitmapBounds,
+				destinationRect,
+				B_FILTER_BITMAP_BILINEAR);
+		}
+		else if (fDesktopBackgroundMode == B_BACKGROUND_MODE_TILED)
+		{
+			BScreen screen(Window());
+			BRect screenFrame = screen.Frame();
+			BRect bitmapBounds = fDesktopBackground->Bounds();
+
+			BPoint phase(
+				windowFrame.left
+					- (screenFrame.Width() - bitmapBounds.Width()) / 2,
+				windowFrame.top
+					- (screenFrame.Height() - bitmapBounds.Height()) / 2);
+
+			DrawTiledBitmap(
+				fDesktopBackground,
+				Bounds(),
+				phase);
+		}
+		else
+		{
+			BRect sourceRect(
+				windowFrame.left,
+				windowFrame.top,
+				windowFrame.left + w,
+				windowFrame.top + h);
+
+			DrawBitmap(fDesktopBackground, sourceRect, Bounds());
+		}
+	}
+	else
+	{
+		SetHighColor(fColor2);
+		FillRect(Bounds());
+	}
 
 	fPanels.Lock();
 	for ( int i=0; i<fPanels.CountItems(); i++ )

@@ -31,6 +31,8 @@ static const uint32 kMsgDrawOuterFrame = 'drof';
 static const uint32 kMsgHideEffectDelay = 'hied';
 static const uint32 kMsgBackgroundColor = 'bgco';
 static const uint32 kMsgTabColor = 'taco';
+static const uint32 kMsgDrawTabBorder = 'dtbo';
+static const uint32 kMsgTabBorderColor = 'tbco';
 static const uint32 kMsgChangeTabName = 'tana';
 static const uint32 kMsgModifyName = 'mona';
 static const uint32 kMsgAddTab = 'adta';
@@ -72,6 +74,8 @@ private:
 	BButton*			fAddTabButton;
 	BButton*			fRemoveTabButton;
 	BColorControl*		fTabColorControl;
+	BCheckBox*			fDrawTabBorderControl;
+	BColorControl*		fTabBorderColorControl;
 	BTextControl*		fTabNameControl;
 
 	BView*				fGeneralPrefsView;

@@ -1,0 +1,9 @@
+# Local build output
+source/objects.*-release/
+
+# Local Haiku package staging and packages
+source/dockbert-package/
+source/*.hpkg
+
+# Local source backups
+source/*.pre-*

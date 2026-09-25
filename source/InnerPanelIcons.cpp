@@ -8,6 +8,8 @@
 #include <Catalog.h>
 #include <ControlLook.h>
 #include <Directory.h>
+#include <FindDirectory.h>
+#include <IconUtils.h>
 #include <List.h>
 #include <Locale.h>
 #include <Message.h>
@@ -570,12 +572,88 @@ void TTrackerIcon::ReloadIcons()
 	delete fSmallIcon;
 	BEntry ent(&fRef, true);
 
-	if( ent.InitCheck() == B_OK )
+	if (ent.InitCheck() == B_OK)
 	{
-		fSmallIcon = new BBitmap( GetTrackerIcon(&ent, B_LARGE_ICON));
+		int32 resourceId = -1;
+
+		BPath entryPath;
+		if (ent.GetPath(&entryPath) == B_OK)
+		{
+			// Use Tracker's special icon for the user's home directory.
+			BPath homePath;
+			if (find_directory(B_USER_DIRECTORY, &homePath) == B_OK
+				&& strcmp(entryPath.Path(), homePath.Path()) == 0)
+			{
+				resourceId = R_TrackerHomeIcon;
+			}
+			else
+			{
+				// Use Tracker's special icon for the boot volume.
+				BVolume bootVolume;
+				BVolumeRoster volumeRoster;
+
+				if (volumeRoster.GetBootVolume(&bootVolume) == B_OK)
+				{
+					BDirectory root;
+					if (bootVolume.GetRootDirectory(&root) == B_OK)
+					{
+						BEntry rootEntry;
+						BPath rootPath;
+
+						if (root.GetEntry(&rootEntry) == B_OK
+							&& rootEntry.GetPath(&rootPath) == B_OK
+							&& strcmp(entryPath.Path(),
+								rootPath.Path()) == 0)
+						{
+							resourceId
+								= R_TrackerBootVolumeIcon;
+						}
+					}
+				}
+			}
+		}
+
+		BBitmap* smallIcon = NULL;
+		BBitmap* bigIcon = NULL;
+
+		if (resourceId >= 0)
+		{
+			size_t size;
+			const uint8* data = static_cast<const uint8*>(
+				AppResSet()->FindResource('VICN', resourceId, &size));
+
+			if (data != NULL)
+			{
+				smallIcon = new BBitmap(BRect(0, 0, 31, 31),
+					B_RGBA32);
+				if (BIconUtils::GetVectorIcon(data, size,
+					smallIcon) != B_OK)
+				{
+					delete smallIcon;
+					smallIcon = NULL;
+				}
+
+				bigIcon = new BBitmap(BRect(0, 0, 47, 47),
+					B_RGBA32);
+				if (BIconUtils::GetVectorIcon(data, size,
+					bigIcon) != B_OK)
+				{
+					delete bigIcon;
+					bigIcon = NULL;
+				}
+			}
+		}
+
+		if (smallIcon == NULL)
+			smallIcon = GetTrackerIcon(&ent, B_LARGE_ICON);
+
+		if (bigIcon == NULL)
+			bigIcon = GetTrackerIcon(&ent, (icon_size)2);
+
+		fSmallIcon = smallIcon;
 
 		delete fBigIcon;
-		fBigIcon = new BBitmap( GetTrackerIcon(&ent, (icon_size)2));
+		fBigIcon = bigIcon;
 	}
 }
 

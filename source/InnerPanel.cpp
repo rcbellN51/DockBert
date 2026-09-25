@@ -42,7 +42,9 @@
 using namespace BPrivate;
 
 const property_info _inner_panel_property_list[] = {
-	{ "FrameColor",	{ B_GET_PROPERTY, B_SET_PROPERTY }, { B_DIRECT_SPECIFIER }, 0, 0, { B_RGB_COLOR_TYPE }, {}, {} },
+	{ "FrameColor", { B_GET_PROPERTY, B_SET_PROPERTY }, { B_DIRECT_SPECIFIER }, 0, 0, { B_RGB_COLOR_TYPE }, {}, {} },
+	{ "DrawBorder", { B_GET_PROPERTY, B_SET_PROPERTY }, { B_DIRECT_SPECIFIER }, 0, 0, { B_BOOL_TYPE }, {}, {} },
+	{ "BorderColor", { B_GET_PROPERTY, B_SET_PROPERTY }, { B_DIRECT_SPECIFIER }, 0, 0, { B_RGB_COLOR_TYPE }, {}, {} },
 	{ "Name",		{ B_GET_PROPERTY, B_SET_PROPERTY }, { B_DIRECT_SPECIFIER }, 0, 0, { B_STRING_TYPE }, {}, {} },
 //	{ "FrameHeight",{ B_GET_PROPERTY, B_SET_PROPERTY }, { B_DIRECT_SPECIFIER }, 0, 0, { B_INT32_TYPE }, {}, {}  },
 
@@ -71,6 +73,8 @@ TInnerPanel::TInnerPanel(TPanelWindowView *parent)
 	: fParent(0), fPanelTimer(0)
 {
 	fBackFrameColor = (rgb_color){218,218,205,255};
+	fDrawBorder = false;
+	fBorderColor = (rgb_color){0,0,0,255};
 	fTabName = "unnamed";
 	fFrameHeight = 11 + kDefaultBigIconSize;
 
@@ -91,6 +95,13 @@ TInnerPanel::TInnerPanel( BMessage *msg )
 		fBackFrameColor = *temp_c;
 	else
 		fBackFrameColor = (rgb_color){218,218,205,255};
+	if ( msg->FindBool( "DrawBorder", &fDrawBorder ) != B_OK )
+		fDrawBorder = false;
+
+	if ( msg->FindData( "BorderColor", B_RGB_COLOR_TYPE, (const void**)&temp_c, &_size ) == B_OK)
+		fBorderColor = *temp_c;
+	else
+		fBorderColor = (rgb_color){0,0,0,255};
 
 	if ( msg->FindString( "Name", &fTabName ) != B_OK )
 		fTabName = "unnamed";
@@ -112,6 +123,8 @@ TInnerPanel::~TInnerPanel()
 status_t TInnerPanel::Archive( BMessage *into, bool deep ) const
 {
 	into->AddData( "FrameColor", B_RGB_COLOR_TYPE, &fBackFrameColor, sizeof(fBackFrameColor) );
+	into->AddBool( "DrawBorder", fDrawBorder );
+	into->AddData( "BorderColor", B_RGB_COLOR_TYPE, &fBorderColor, sizeof(fBorderColor) );
 
 	into->AddString( "Name", fTabName );
 	into->AddInt32( "FrameHeight", fFrameHeight );
@@ -257,6 +270,25 @@ bool TInnerPanel::SetOptions( const char *what, const BMessage *msg )
 		else
 			return false;
 	}
+	else if ( !strcasecmp( what, "DrawBorder" ) )
+	{
+		if ( msg->FindBool( "data", &fDrawBorder ) == B_OK )
+			Invalidate();
+		else
+			return false;
+	}
+	else if ( !strcasecmp( what, "BorderColor" ) )
+	{
+		rgb_color *temp_c;
+		ssize_t _size;
+		if ( msg->FindData( "data", B_RGB_COLOR_TYPE, (const void**)&temp_c, &_size ) == B_OK)
+		{
+			fBorderColor = *temp_c;
+			Invalidate();
+		}
+		else
+			return false;
+	}
 	else if ( !strcasecmp( what, "Name" ) )
 	{
 		BString n;
@@ -290,6 +322,10 @@ bool TInnerPanel::GetOptions( const char *what, BMessage *msg )
 {
 	if ( !strcasecmp( what, "FrameColor" ) )
 		msg->AddData( "response", B_RGB_COLOR_TYPE, &fBackFrameColor, sizeof(fBackFrameColor) );
+	else if ( !strcasecmp( what, "DrawBorder" ) )
+		msg->AddBool( "response", fDrawBorder );
+	else if ( !strcasecmp( what, "BorderColor" ) )
+		msg->AddData( "response", B_RGB_COLOR_TYPE, &fBorderColor, sizeof(fBorderColor) );
 	else if ( !strcasecmp( what, "Name" ) )
 		msg->AddString( "response", fTabName );
 //	else if ( !strcasecmp( what, "FrameHeight" ) )
@@ -330,6 +366,43 @@ rgb_color TInnerPanel::FrameColor() const
 void TInnerPanel::DrawBackFrame()
 {
 	BRect rect = fFrameFrame;
+
+	if ( fDrawBorder )
+	{
+		BRect borderRect = rect;
+		borderRect.left -= 1;
+		borderRect.top -= 1;
+		borderRect.right += 1;
+
+		fParent->SetHighColor( fBorderColor );
+
+		BRect borderLeftTopArc = BRect(
+			borderRect.left + 5,
+			borderRect.top,
+			borderRect.left + 20,
+			borderRect.top + 15 );
+
+		BRect borderRightTopArc = BRect(
+			borderRect.right - 20,
+			borderRect.top,
+			borderRect.right - 5,
+			borderRect.top + 15 );
+
+		fParent->StrokeArc( borderLeftTopArc, 90, 90 );
+		fParent->StrokeArc( borderRightTopArc, 0, 90 );
+
+		fParent->StrokeLine(
+			BPoint( borderRect.left + 10, borderRect.top ),
+			BPoint( borderRect.right - 10, borderRect.top ) );
+
+		fParent->StrokeLine(
+			BPoint( borderRect.left + 5, borderRect.top + 5 ),
+			BPoint( borderRect.left + 5, borderRect.bottom ) );
+
+		fParent->StrokeLine(
+			BPoint( borderRect.right - 5, borderRect.top + 5 ),
+			BPoint( borderRect.right - 5, borderRect.bottom ) );
+	}
 
 	fParent->SetHighColor( fBackFrameColor );
 
@@ -502,7 +575,10 @@ void TRaisingIconPanel::MouseDown( BPoint point, uint32 buttons )
 {
 	bool do_mouse_up = false;
 	BPoint pw;
-	if ( buttons & B_PRIMARY_MOUSE_BUTTON )
+	TPanelIcon *hicon = IconAt( point );
+
+	if ( buttons & B_PRIMARY_MOUSE_BUTTON
+		&& hicon && hicon->IsDraggable() )
 	{
 		int count = 10;
 		uint32 mods;
@@ -520,7 +596,6 @@ void TRaisingIconPanel::MouseDown( BPoint point, uint32 buttons )
 			{
 				if ( did_move )
 				{
-					TPanelIcon *hicon = IconAt( point );
 					fParent->DraggingItem( hicon );
 					return;
 				}
@@ -533,8 +608,6 @@ void TRaisingIconPanel::MouseDown( BPoint point, uint32 buttons )
 
 	if ( fIconFrame.Contains( point ) )
 	{
-		TPanelIcon *hicon = IconAt( point );
-
 		if ( hicon )
 			MouseDownIcon( hicon, point, buttons );
 	}

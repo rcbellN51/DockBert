@@ -21,5 +21,7 @@ enum {
 	R_WorkspacesIcon = 65,
 	R_SmallSign = 66,
 	R_FlashSign = 67,
-	R_HaikuMenuIcon = 68
+	R_HaikuMenuIcon = 68,
+	R_TrackerHomeIcon = 69,
+	R_TrackerBootVolumeIcon = 70
 };

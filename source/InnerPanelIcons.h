@@ -77,6 +77,7 @@ public:
 
 	// some item specific functions, zoomable icons' fZoomStep is modified
 	virtual bool IsZoomable() const { return true; }
+	virtual bool IsDraggable() const { return true; }
 	// if Removable() returns false, the item wont be removed
 	virtual bool Removable() const { return true; }
 
@@ -378,6 +379,7 @@ public:
 	virtual void GetPreferredSize( float *, float * );
 	virtual void AttachedToPanel();
 	virtual bool IsZoomable() const { return false; }
+	virtual bool IsDraggable() const { return false; }
 	virtual TAwarePopupMenu *Menu();
 	virtual void MouseDown( BPoint point, uint32 modifiers, uint32 buttons );
 	virtual void Draw();

@@ -48,6 +48,8 @@ Preferences::SetProperty(BString property, T value)
 		message.AddInt32("data", value);
 	} else if constexpr (std::is_same<T, bool>::value) {
 		message.AddBool("data", value);
+	} else if constexpr (std::is_same<T, BString>::value) {
+		message.AddString("data", value.String());
 	} else if constexpr (std::is_same<T, rgb_color>::value) {
 		message.AddData("data", B_RGB_COLOR_TYPE, &value, sizeof(value));
 			// AddColor() can't work because it uses B_RGB_32_BIT
@@ -127,6 +129,11 @@ Preferences::GetTabProperty(int32 tabIndex, BString property, T defaultValue)
 			status_t status = reply.FindString("response", &data);
 			if (status == B_OK)
 				return data;
+		} else if constexpr (std::is_same<T, bool>::value) {
+			bool data;
+			status_t status = reply.FindBool("response", &data);
+			if (status == B_OK)
+				return data;
 		} else {
 			T *data = nullptr;
 			ssize_t numBytes = 0;
@@ -134,7 +141,6 @@ Preferences::GetTabProperty(int32 tabIndex, BString property, T defaultValue)
 			if (status == B_OK)
 				return *data;
 		}
-
 	}
 	return defaultValue;
 }
@@ -148,6 +154,8 @@ Preferences::SetTabProperty(int32 tabIndex, BString property, T value)
 	message.AddSpecifier("tab", tabIndex);
 	if constexpr (std::is_same<T, int32>::value) {
 		message.AddInt32("data", value);
+	} else if constexpr (std::is_same<T, bool>::value) {
+		message.AddBool("data", value);
 	} else if constexpr (std::is_same<T, BString>::value) {
 		message.AddString("data", value.String());
 	} else if constexpr (std::is_same<T, rgb_color>::value) {
