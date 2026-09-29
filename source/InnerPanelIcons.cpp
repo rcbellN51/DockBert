@@ -1624,7 +1624,7 @@ TWorkspacesIcon::TWorkspacesIcon()
 	fWorkspaceImage = new BBitmap(GetTrackerIcon(&e, B_LARGE_ICON));
 
 	fFont = BFont( be_bold_font );
-	fFont.SetSize( 12 );
+	fFont.SetSize( 14 );
 }
 
 TWorkspacesIcon::TWorkspacesIcon( BMessage *message )
@@ -1636,7 +1636,7 @@ TWorkspacesIcon::TWorkspacesIcon( BMessage *message )
 	fWorkspaceImage = new BBitmap(GetTrackerIcon(&e, B_LARGE_ICON));
 
 	fFont = BFont( be_bold_font );
-	fFont.SetSize( 12 );
+	fFont.SetSize( 14 );
 }
 
 TWorkspacesIcon::~TWorkspacesIcon()
@@ -1730,20 +1730,35 @@ void TWorkspacesIcon::DrawIcon()
 	char workspace_number[16];
 	sprintf( workspace_number, "%i", (int)current_workspace()+1 );
 
-	float s_width = fFont.StringWidth( workspace_number );
-	s_width = (kDefaultBigIconSize - s_width) / 2;
+	float textWidth = fFont.StringWidth( workspace_number );
 
 	BPoint where = ContentLocation();
 
 	canvas->SetDrawingMode( B_OP_ALPHA );
-	canvas->SetHighColor( 0, 0, 0, 80 );
-	canvas->SetBlendingMode( B_CONSTANT_ALPHA, B_ALPHA_OVERLAY );
+	canvas->SetBlendingMode( B_PIXEL_ALPHA, B_ALPHA_OVERLAY );
 	canvas->DrawBitmap( fWorkspaceImage, where + BPoint((kDefaultBigIconSize-kDefaultSmallIconSize)/2+1,(kDefaultBigIconSize-kDefaultSmallIconSize)/2) );
 	canvas->SetDrawingMode( B_OP_COPY );
 	BFont font;
 	canvas->GetFont(&font);
 	canvas->SetFont(&fFont);
-	canvas->DrawString( workspace_number, where + BPoint( s_width, kDefaultBigIconSize-fFont.Size() ) );
+	BPoint textPosition(
+		where.x + kDefaultBigIconSize - textWidth - 7,
+		where.y + kDefaultBigIconSize - 8 );
+
+	canvas->SetHighColor( 255, 255, 255 );
+
+	canvas->DrawString( workspace_number, textPosition + BPoint( -1, -1 ) );
+	canvas->DrawString( workspace_number, textPosition + BPoint(  0, -1 ) );
+	canvas->DrawString( workspace_number, textPosition + BPoint(  1, -1 ) );
+	canvas->DrawString( workspace_number, textPosition + BPoint( -1,  0 ) );
+	canvas->DrawString( workspace_number, textPosition + BPoint(  1,  0 ) );
+	canvas->DrawString( workspace_number, textPosition + BPoint( -1,  1 ) );
+	canvas->DrawString( workspace_number, textPosition + BPoint(  0,  1 ) );
+	canvas->DrawString( workspace_number, textPosition + BPoint(  1,  1 ) );
+
+	canvas->SetHighColor( 0, 0, 0 );
+	canvas->DrawString( workspace_number, textPosition );
+
 	canvas->SetFont(&font);
 }
 
