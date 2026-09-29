@@ -351,6 +351,8 @@ void TInnerPanel::Draw(BRect rect)
 	if ( fFrame.Width() >= 30 ) // todo: review this 30
 		DrawBackFrame();
 	DrawContent(rect);
+	if ( fFrame.Width() >= 30 )
+		DrawBorder();
 }
 
 rgb_color TInnerPanel::BackColor() const
@@ -366,43 +368,6 @@ rgb_color TInnerPanel::FrameColor() const
 void TInnerPanel::DrawBackFrame()
 {
 	BRect rect = fFrameFrame;
-
-	if ( fDrawBorder )
-	{
-		BRect borderRect = rect;
-		borderRect.left -= 1;
-		borderRect.top -= 1;
-		borderRect.right += 1;
-
-		fParent->SetHighColor( fBorderColor );
-
-		BRect borderLeftTopArc = BRect(
-			borderRect.left + 5,
-			borderRect.top,
-			borderRect.left + 20,
-			borderRect.top + 15 );
-
-		BRect borderRightTopArc = BRect(
-			borderRect.right - 20,
-			borderRect.top,
-			borderRect.right - 5,
-			borderRect.top + 15 );
-
-		fParent->StrokeArc( borderLeftTopArc, 90, 90 );
-		fParent->StrokeArc( borderRightTopArc, 0, 90 );
-
-		fParent->StrokeLine(
-			BPoint( borderRect.left + 10, borderRect.top ),
-			BPoint( borderRect.right - 10, borderRect.top ) );
-
-		fParent->StrokeLine(
-			BPoint( borderRect.left + 5, borderRect.top + 5 ),
-			BPoint( borderRect.left + 5, borderRect.bottom ) );
-
-		fParent->StrokeLine(
-			BPoint( borderRect.right - 5, borderRect.top + 5 ),
-			BPoint( borderRect.right - 5, borderRect.bottom ) );
-	}
 
 	fParent->SetHighColor( fBackFrameColor );
 
@@ -451,6 +416,49 @@ void TInnerPanel::DrawBackFrame()
 		fParent->StrokeLine( BPoint( fFrame.left, fFrame.bottom - 3), BPoint( fFrame.left + 6, fFrame.bottom - 3 ) );
 		fParent->StrokeLine( BPoint( fFrame.right - 6, fFrame.bottom - 3), BPoint( fFrame.right, fFrame.bottom - 3 ) );
 	}
+}
+
+void TInnerPanel::DrawBorder()
+{
+	if ( !fDrawBorder )
+		return;
+
+	BRect rect = fFrameFrame;
+
+	const float kappa = 0.55228475f;
+	const float radius = 5.0f;
+	const float control = radius * kappa;
+
+	BShape border;
+
+	border.MoveTo( BPoint( rect.left, rect.bottom ) );
+	border.BezierTo(
+		BPoint( rect.left + control, rect.bottom ),
+		BPoint( rect.left + 5, rect.bottom - 5 + control ),
+		BPoint( rect.left + 5, rect.bottom - 5 ) );
+	border.LineTo( BPoint( rect.left + 5, rect.top + 5 ) );
+
+	border.BezierTo(
+		BPoint( rect.left + 5, rect.top + 5 - control ),
+		BPoint( rect.left + 10 - control, rect.top ),
+		BPoint( rect.left + 10, rect.top ) );
+
+	border.LineTo( BPoint( rect.right - 10, rect.top ) );
+
+	border.BezierTo(
+		BPoint( rect.right - 10 + control, rect.top ),
+		BPoint( rect.right - 5, rect.top + 5 - control ),
+		BPoint( rect.right - 5, rect.top + 5 ) );
+
+	border.LineTo( BPoint( rect.right - 5, rect.bottom - 5 ) );
+	border.BezierTo(
+		BPoint( rect.right - 5, rect.bottom - 5 + control ),
+		BPoint( rect.right - control, rect.bottom ),
+		BPoint( rect.right, rect.bottom ) );
+
+	fParent->SetHighColor( fBorderColor );
+	fParent->MovePenTo( BPoint( 0, 0 ) );
+	fParent->StrokeShape( &border );
 }
 
 bool TInnerPanel::InitTimer()

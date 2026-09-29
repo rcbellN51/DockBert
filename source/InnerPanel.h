@@ -96,6 +96,7 @@ protected:
 friend class TPanelWindowView;
 	virtual void DrawContent(BRect) {}
 	virtual void DrawBackFrame();
+	virtual void DrawBorder();
 
 	bool InitTimer();
 	bool StopTimer();
