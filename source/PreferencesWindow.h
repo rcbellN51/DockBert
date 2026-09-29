@@ -26,6 +26,7 @@ class BTextControl;
 static const int kTimeout = 1000000;
 
 static const uint32 kMsgAlwaysOnTop = 'alot';
+static const uint32 kMsgFakeTransparency = 'fatr';
 static const uint32 kMsgAutoHide = 'auhi';
 static const uint32 kMsgDrawOuterFrame = 'drof';
 static const uint32 kMsgHideEffectDelay = 'hied';
@@ -65,6 +66,7 @@ private:
 	BColorControl*		fBackgroundColorControl;
 	BColorControl*		fOuterFrameColorControl;
 	BCheckBox*			fAlwaysOnTopControl;
+	BCheckBox*			fFakeTransparencyControl;
 	BCheckBox*			fAutoHideControl;
 	BCheckBox*			fDrawOuterFrameControl;
 	BSpinner*			fHideEffectDelayControl;

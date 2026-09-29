@@ -56,6 +56,12 @@ PreferencesWindow::MessageReceived(BMessage* message)
 			fPreferences->SetProperty<bool>("AlwaysOnTop", fAlwaysOnTopControl->Value());
 			break;
 		}
+		case kMsgFakeTransparency:
+		{
+			fPreferences->SetProperty<bool>("FakeTransparency",
+				fFakeTransparencyControl->Value());
+			break;
+		}
 		case kMsgAutoHide:
 		{
 			fPreferences->SetProperty<bool>("AutoHide", fAutoHideControl->Value());
@@ -251,6 +257,8 @@ PreferencesWindow::_InitControls()
 		"OuterFrameColorControl", new BMessage(kMsgOuterFrameColor));
 	fAlwaysOnTopControl = new BCheckBox(B_TRANSLATE("Always on top"),
 		new BMessage(kMsgAlwaysOnTop));
+	fFakeTransparencyControl = new BCheckBox(B_TRANSLATE("Fake transparency"),
+		new BMessage(kMsgFakeTransparency));
 	fAutoHideControl = new BCheckBox(B_TRANSLATE("Auto hide"),
 		new BMessage(kMsgAutoHide));
 	fDrawOuterFrameControl = new BCheckBox(B_TRANSLATE("Draw outer frame"),
@@ -260,9 +268,12 @@ PreferencesWindow::_InitControls()
 
 	BBox *backgroundBox = new BBox("BackgroundBox");
 	backgroundBox->AddChild(BLayoutBuilder::Group<>()
-		.AddGroup(B_HORIZONTAL, B_USE_DEFAULT_SPACING)
-			.Add(new BStringView("", ""))
-			.Add(fBackgroundColorControl)
+		.AddGroup(B_VERTICAL, B_USE_WINDOW_SPACING)
+			.Add(fFakeTransparencyControl)
+			.AddGroup(B_HORIZONTAL, B_USE_DEFAULT_SPACING)
+				.Add(new BStringView("", ""))
+				.Add(fBackgroundColorControl)
+				.End()
 			.End()
 		.View());
 	backgroundBox->SetLabel(B_TRANSLATE("Background"));
@@ -361,6 +372,7 @@ PreferencesWindow::_LoadSettings()
 	fDebugLevel = fPreferences->GetProperty("DebugLevel", 0);
 
 	fAlwaysOnTopControl->SetValue(fPreferences->GetProperty("AlwaysOnTop", false));
+	fFakeTransparencyControl->SetValue(fPreferences->GetProperty("FakeTransparency", false));
 	fAutoHideControl->SetValue(fPreferences->GetProperty("AutoHide", false));
 	fHideEffectDelayControl->SetEnabled(fAutoHideControl->Value());
 	fDrawOuterFrameControl->SetValue(fPreferences->GetProperty("DrawOuterFrame", false));

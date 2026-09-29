@@ -31,6 +31,7 @@
 
 property_info _dock_property_list[] = {
 	{ "TransparentMenus", { B_GET_PROPERTY, B_SET_PROPERTY }, { B_DIRECT_SPECIFIER }, 0, 0, { B_BOOL_TYPE }, {}, {} },
+	{ "FakeTransparency", { B_GET_PROPERTY, B_SET_PROPERTY }, { B_DIRECT_SPECIFIER }, 0, 0, { B_BOOL_TYPE }, {}, {} },
 	{ "DrawOuterFrame", { B_GET_PROPERTY, B_SET_PROPERTY }, { B_DIRECT_SPECIFIER }, 0, 0, { B_BOOL_TYPE }, {}, {} },
 	{ "DockLocation", { B_GET_PROPERTY, B_SET_PROPERTY }, { B_DIRECT_SPECIFIER }, 0, 0, { B_STRING_TYPE }, {}, {} },
 	{ "BackColor", { B_GET_PROPERTY, B_SET_PROPERTY }, { B_DIRECT_SPECIFIER }, 0, 0, { B_RGB_COLOR_TYPE }, {}, {} },
@@ -231,6 +232,8 @@ void TPanelWindowView::AttachedToWindow()
 
 		if ( fThisArchive->FindBool( "TransparentMenus", &fUseTransparentMenus ) != B_OK )
 			fUseTransparentMenus = false;
+		if ( fThisArchive->FindBool( "FakeTransparency", &fUseFakeTransparency ) != B_OK )
+			fUseFakeTransparency = false;
 		if ( fThisArchive->FindInt32( "Location", &fLocation ) != B_OK )
 			fLocation = kLocationBottom;
 
@@ -308,6 +311,7 @@ void TPanelWindowView::AttachedToWindow()
 	{
 		// <options>
 		fUseTransparentMenus = false;
+		fUseFakeTransparency = false;
 		fLocation = kLocationBottom;
 		fColor2 = (rgb_color){229,235,231,255};
 		fColor3 = (rgb_color){218,218,205,255};
@@ -874,7 +878,7 @@ void TPanelWindowView::Draw( BRect updateRect )
 	w = Bounds().Width();
 	h = Bounds().Height();
 
-	if (fDesktopBackground != 0 && Window() != 0)
+	if (fUseFakeTransparency && fDesktopBackground != 0 && Window() != 0)
 	{
 		BRect windowFrame = Window()->Frame();
 
@@ -1127,6 +1131,7 @@ status_t TPanelWindowView::Archive( BMessage *into, bool deep ) const
 	BView::Archive( into, deep );
 
 	into->AddBool( "TransparentMenus", fUseTransparentMenus );
+	into->AddBool( "FakeTransparency", fUseFakeTransparency );
 	into->AddInt32( "Location", fLocation );
 
 	into->AddData( "BackColor", B_RGB_COLOR_TYPE, &fColor2, sizeof(rgb_color) );
@@ -1174,6 +1179,14 @@ bool TPanelWindowView::SetOptions( const char *option, const BMessage *msg )
 	{
 		if ( msg->FindBool( "data", &fUseTransparentMenus ) != B_OK )
 			return false;
+	}
+	else if ( !strcasecmp( option, "FakeTransparency" ) )
+	{
+		if ( msg->FindBool( "data", &fUseFakeTransparency ) != B_OK )
+			return false;
+		if ( fUseFakeTransparency )
+			LoadDesktopBackground();
+		Invalidate();
 	}
 	else if ( !strcasecmp( option, "DrawOuterFrame" ) )
 	{
@@ -1286,6 +1299,8 @@ bool TPanelWindowView::GetOptions( const char *option, BMessage *msg )
 {
 	if ( !strcasecmp( option, "TransparentMenus" ) )
 		msg->AddBool( "response", fUseTransparentMenus );
+	else if ( !strcasecmp( option, "FakeTransparency" ) )
+		msg->AddBool( "response", fUseFakeTransparency );
 	else if ( !strcasecmp( option, "DrawOuterFrame" ) )
 		msg->AddBool( "response", fDrawOuterFrame );
 	else if ( !strcasecmp( option, "DockLocation" ) )

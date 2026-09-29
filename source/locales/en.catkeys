@@ -1,4 +1,4 @@
-1	English	x-vnd.Dockbert	4267634882
+1	English	x-vnd.Dockbert	1188398255
 Dockbert Preferences	PreferencesWindow		Dockbert Preferences
 Background	PreferencesWindow		Background
 Bring to front	tracker-menus		Bring to front
@@ -6,6 +6,7 @@ Name	PreferencesWindow		Name
 No entries	inner-panel-icons		No entries
 No	inner-panel-icons		No
 Always on top	PreferencesWindow		Always on top
+Draw border	PreferencesWindow		Draw border
 Shut down	inner-panel-icons		Shut down
 Find	inner-panel-icons		Find
 Hide effect delay	PreferencesWindow		Hide effect delay
@@ -33,8 +34,10 @@ Show	tracker-menus		Show
 No entries	tracker-menus		No entries
 Show clock	inner-panel-icons		Show clock
 Restart	inner-panel-icons		Restart
+Fake transparency	PreferencesWindow		Fake transparency
 Do you really want to remove the Haiku Menu?	inner-panel-icons		Do you really want to remove the Haiku Menu?
 Do you really wish to remove the Trash icon?	inner-panel-icons		Do you really wish to remove the Trash icon?
+Border color	PreferencesWindow		Border color
 Yes	inner-panel-icons		Yes
 Change time	inner-panel-icons		Change time
 Remove	PreferencesWindow		Remove

@@ -153,6 +153,7 @@ private:
 
 	// options
 	bool fUseTransparentMenus;
+	bool fUseFakeTransparency;
 	int32 fLocation;
 	rgb_color fColor1, fColor2, fColor3;
 	bool fDrawOuterFrame;
